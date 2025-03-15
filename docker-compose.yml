@@ -31,7 +31,8 @@ services:
     depends_on:
       - postgres
     environment:
-      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5433/airflow
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AF_POSTGRES_USER}
+        :${AF_POSTGRES_PASSWORD}@postgres:5433/${AF_POSTGRES_DB}
       AIRFLOW__CORE__LOAD_DEFAULT_CONNECTIONS: 'false'
       AF_USER: ${AF_USER}
       AF_PASS: ${AF_PASS}
@@ -43,7 +44,7 @@ services:
     entrypoint: ["sh", "-c"]
     command: ["./entrypoint.sh"]
 
-  app:
+  fastapi:
     build:
       context: ./src/
       dockerfile: ./dockerfiles/fastapi
