@@ -1,9 +1,7 @@
 jupyterlab
 jupyterlab_execute_time
-ipython-sql
-sqlalchemy
-sqlalchemy-redshift
-pgspecial
-psycopg2
-psycopg
+sqlalchemy=1.4.54
+sqlalchemy-redshift=0.8.14
+psycopg2-binary
 jupysql
+pandas
