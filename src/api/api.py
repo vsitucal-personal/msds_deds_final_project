@@ -1,4 +1,5 @@
 import os
+
 import psycopg2
 from fastapi import FastAPI, Query
 from models.models import Customer, InventoryItem, Vendor

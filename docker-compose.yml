@@ -32,9 +32,9 @@ services:
       - postgres
     environment:
       AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5433/airflow
-      AIRFLOW__WEBSERVER__RBAC: "False"
-      AIRFLOW__WEBSERVER__AUTH_BACKEND: airflow.api.auth.backend.deny_all
-      AIRFLOW__WEBSERVER__ENABLE_PROXY_FIX: "True"
+#      AIRFLOW__WEBSERVER__RBAC: "False"
+#      AIRFLOW__WEBSERVER__AUTH_BACKEND: airflow.api.auth.backend.deny_all
+#      AIRFLOW__WEBSERVER__ENABLE_PROXY_FIX: "True"
     ports:
       - "8080:8080"
     command: ["airflow", "standalone"]
