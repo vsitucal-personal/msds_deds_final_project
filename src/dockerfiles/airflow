@@ -1,4 +1,5 @@
 FROM apache/airflow:2.10.5
 ENV AIRFLOW_HOME=/opt/airflow
 COPY airflow/ $AIRFLOW_HOME/
+RUN chmod +x $AIRFLOW_HOME/airflow/entrypoint.sh
 WORKDIR $AIRFLOW_HOME

@@ -41,7 +41,7 @@ services:
     ports:
       - "8080:8080"
     entrypoint: ["sh", "-c"]
-    command: ["sudo ./entrypoint.sh"]
+    command: ["./entrypoint.sh"]
 
   app:
     build:
@@ -69,4 +69,5 @@ services:
       - "8889:8889"
     environment:
       - JUPYTER_TOKEN=${JUPYTER_TOKEN}
-    command: [ "jupyter", "lab", "--ip=0.0.0.0", "--port=8889", "--no-browser"]
+    entrypoint: [ "sh", "-c" ]
+    command: ["sudo ./entrypoint.sh"]
