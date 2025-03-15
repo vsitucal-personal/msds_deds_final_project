@@ -4,3 +4,4 @@ jupyterlab_execute_time
 ipython-sql
 sqlalchemy
 sqlalchemy-redshift
+pgspecial
