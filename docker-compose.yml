@@ -41,7 +41,7 @@ services:
     ports:
       - "8080:8080"
     entrypoint: ["sh", "-c"]
-    command: ["./entrypoint.sh"]
+    command: ["sudo ./entrypoint.sh"]
 
   app:
     build:
