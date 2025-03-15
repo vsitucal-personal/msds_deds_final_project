@@ -1,7 +1,9 @@
-psycopg2-binary
 jupyterlab
 jupyterlab_execute_time
 ipython-sql
 sqlalchemy
 sqlalchemy-redshift
 pgspecial
+psycopg2
+psycopg
+jupysql
