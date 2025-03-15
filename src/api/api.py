@@ -1,9 +1,10 @@
+import os
 import psycopg2
 from fastapi import FastAPI, Query
 from models.models import Customer, InventoryItem, Vendor
 from psycopg2.extras import RealDictCursor
 
-DATABASE_URL = "dbname=dbname user=user password=password host=localhost"
+DATABASE_URL = os.getenv("DATABASE_URL")
 app = FastAPI()
 
 

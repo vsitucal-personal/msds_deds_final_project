@@ -1,0 +1,54 @@
+services:
+  db:
+    build:
+      context: ./src/
+      dockerfile: ./dockerfiles/main_postgres
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ecommerce
+    ports:
+      - "5432:5432"
+
+  postgres:
+    image: postgres:15
+    container_name: airflow_postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    ports:
+      - "5433:5433"
+    command: ["postgres", "-p", "5433"]
+
+  airflow:
+    build:
+      context: ./src/
+      dockerfile: ./dockerfiles/airflow
+    container_name: airflow_webserver
+    depends_on:
+      - postgres
+    environment:
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5433/airflow
+      AIRFLOW__WEBSERVER__RBAC: "False"
+      AIRFLOW__WEBSERVER__AUTH_BACKEND: airflow.api.auth.backend.deny_all
+      AIRFLOW__WEBSERVER__ENABLE_PROXY_FIX: "True"
+    ports:
+      - "8080:8080"
+    command: ["airflow", "standalone"]
+
+  app:
+    build:
+      context: ./src/
+      dockerfile: ./dockerfiles/fastapi
+    container_name: fastapi_app
+    restart: always
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: "dbname=dbname user=user password=password host=db"
+    ports:
+      - "8000:8000"
+    command: ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]

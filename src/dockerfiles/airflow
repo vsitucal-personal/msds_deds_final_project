@@ -1,0 +1,31 @@
+# Use Python 3.9 as the base image
+FROM python:3.9
+
+# Set environment variables
+ENV AIRFLOW_HOME=/opt/airflow
+ENV _AIRFLOW_WWW_USER_USERNAME=admin
+ENV _AIRFLOW_WWW_USER_PASSWORD=admin123
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Apache Airflow
+RUN pip install --no-cache-dir pendulum==2.1.2 Flask-Session
+RUN pip install --no-cache-dir apache-airflow[postgres]==2.7.1
+
+# Set up Airflow database
+RUN airflow db init
+
+# Create an admin user
+RUN airflow users create \
+    --username "$_AIRFLOW_WWW_USER_USERNAME" \
+    --firstname Admin \
+    --lastname User \
+    --role Admin \
+    --email admin@example.com \
+    --password "$_AIRFLOW_WWW_USER_PASSWORD"
+
+# Expose the default Airflow webserver port
+EXPOSE 8080
