@@ -5,7 +5,15 @@ from fastapi import FastAPI, Query
 from models.models import Customer, InventoryItem, Vendor
 from psycopg2.extras import RealDictCursor
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+POSTGRES_USER = os.getenv("POSTGRES_USER")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
+POSTGRES_DB = os.getenv("POSTGRES_DB")
+HOST = os.getenv("HOST")
+
+# Construct the DATABASE_URL
+DATABASE_URL = (
+    f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{HOST}:5432/{POSTGRES_DB}"
+)
 app = FastAPI()
 
 
