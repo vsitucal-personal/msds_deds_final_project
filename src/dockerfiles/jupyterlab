@@ -4,5 +4,4 @@ COPY jupyterlab /app
 RUN pip install -r requirements.txt
 USER root
 RUN chmod +x /app/entrypoint.sh
-USER jupyterlab
 EXPOSE 8889
