@@ -1,7 +1,4 @@
 FROM apache/airflow:2.10.5
-
-# Set the environment variable for Airflow to use SQLite (default) or other DB
 ENV AIRFLOW_HOME=/opt/airflow
-
-# Copy local files if necessary (e.g., DAGs, plugins)
-COPY dags/ $AIRFLOW_HOME/dags/
+COPY airflow/ $AIRFLOW_HOME/
+WORKDIR $AIRFLOW_HOME

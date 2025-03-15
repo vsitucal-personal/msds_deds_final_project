@@ -1,0 +1,8 @@
+POSTGRES_USER=user
+POSTGRES_PASSWORD=password
+POSTGRES_DB=ecommerce
+AF_POSTGRES_USER=airflow
+AF_POSTGRES_PASSWORD=airflow
+AF_POSTGRES_DB=airflow
+AF_USER=admin
+AF_PASS=admin
