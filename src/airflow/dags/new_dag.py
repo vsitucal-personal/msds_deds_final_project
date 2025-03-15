@@ -1,7 +1,10 @@
-from airflow import DAG
-from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.operators.python import PythonOperator
 from datetime import datetime
+
+from airflow.operators.python import PythonOperator
+from airflow.providers.postgres.hooks.postgres import PostgresHook
+
+from airflow import DAG
+
 
 def list_tables():
     hook = PostgresHook(postgres_conn_id="ecommerce")
@@ -14,23 +17,22 @@ def list_tables():
     cursor.close()
     conn.close()
 
+
 default_args = {
     "owner": "airflow",
     "start_date": datetime(2024, 3, 16),
-    "catchup": False
+    "catchup": False,
 }
 
 dag = DAG(
     "ecommerce_show_tables",
     default_args=default_args,
     schedule_interval="@daily",
-    catchup=False
+    catchup=False,
 )
 
 show_tables_task = PythonOperator(
-    task_id="show_tables",
-    python_callable=list_tables,
-    dag=dag
+    task_id="show_tables", python_callable=list_tables, dag=dag
 )
 
 show_tables_task
