@@ -59,3 +59,14 @@ services:
     ports:
       - "8000:8000"
     command: ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
+
+  jupyterlab_instance:
+    build:
+      context: ./src
+      dockerfile: ./dockerfiles/jupyterlab
+    container_name: jupyterlab_instance
+    ports:
+      - "8889:8889"
+    environment:
+      - JUPYTER_TOKEN=${JUPYTER_TOKEN}
+    command: [ "jupyter", "lab", "--ip=0.0.0.0", "--port=8889", "--no-browser"]

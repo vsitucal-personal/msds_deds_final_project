@@ -1,18 +1,6 @@
-# Use official Python image
 FROM python:3.9
-
-# Set the working directory
 WORKDIR /api
-
-# Copy the application files
 COPY api/ /api
-
-# RUN ls;cc
-
-# Install dependencies
 RUN pip install --no-cache-dir fastapi psycopg2-binary uvicorn
-
 ENV PYTHONPATH="/api"
-
-# Expose port for FastAPI
 EXPOSE 8000
