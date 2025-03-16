@@ -1,8 +1,8 @@
 import os
 
 import psycopg2.extras
-from fastapi import FastAPI, HTTPException
-from models.models import Customer
+from fastapi import FastAPI, HTTPException, Query
+from models.models import Customer, Vendor
 from psycopg2 import IntegrityError
 from psycopg2.extras import RealDictCursor
 
@@ -50,3 +50,65 @@ def create_customer(customer: Customer):
         conn.close()
 
     return new_customer
+
+
+@app.get("/customers/", response_model=Customer)
+def get_customer(
+    email: str = Query(
+        ..., title="Customer Email", description="Email of the customer to retrieve"
+    )
+):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT * FROM customer WHERE email = %s;", (email,))
+        customer = cursor.fetchone()
+        if customer is None:
+            raise HTTPException(status_code=404, detail="Customer not found")
+    finally:
+        cursor.close()
+        conn.close()
+
+    return customer
+
+
+@app.post("/vendors/", status_code=201)
+def register_vendor(vendor: Vendor):
+    """Registers a new vendor in the database."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            INSERT INTO vendor (vendor_name, region, joined_at)
+            VALUES (%s, %s, %s) RETURNING *;
+            """,
+            (vendor.vendor_name, vendor.region, vendor.joined_at),
+        )
+        new_vendor = cursor.fetchone()
+        conn.commit()
+    except psycopg2.IntegrityError:
+        conn.rollback()
+        raise HTTPException(status_code=400, detail="Vendor registration failed")
+    finally:
+        cursor.close()
+        conn.close()
+
+    return new_vendor
+
+
+@app.get("/vendors/")
+def get_vendor_by_name(vendor_name: str = Query(..., title="Vendor Name")):
+    """Fetches a vendor by name."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT * FROM vendor WHERE vendor_name = %s;", (vendor_name,))
+        vendor = cursor.fetchone()
+        if not vendor:
+            raise HTTPException(status_code=404, detail="Vendor not found")
+    finally:
+        cursor.close()
+        conn.close()
+
+    return vendor
