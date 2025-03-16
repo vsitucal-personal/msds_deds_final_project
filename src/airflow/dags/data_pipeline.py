@@ -91,6 +91,20 @@ def fetch_ddb_then_upload_():
 
     df = df.drop(columns=["sk", "pk", "created_at"]).reset_index(drop=True)
 
+    df = df[
+        [
+            "item_id",
+            "customer_id",
+            "vendor_id",
+            "category_id",
+            "date_id",
+            "unit_price",
+            "qty",
+            "total_price",
+        ]
+    ]
+    date_df = date_df[["date_id", "year", "month", "day", ""]]
+
     s3_hook = S3Hook(aws_conn_id="aws_default")
 
     zones = {
@@ -123,6 +137,7 @@ def fetch_table_data_and_upload(table_name):
 
     # Convert data to Pandas DataFrame
     df = pd.DataFrame(rows, columns=column_names)
+    df = df.rename(columns={"id": f"{table_name}_id"})
 
     # Initialize S3 Hook
     s3_hook = S3Hook(aws_conn_id="aws_default")
@@ -214,7 +229,7 @@ default_args = {
 
 # Define DAG
 dag = DAG(
-    "oltp_to_s3",
+    "data_pipeline",
     default_args=default_args,
     schedule_interval="@daily",
     catchup=False,
