@@ -176,7 +176,7 @@ def load_raw_to_redshift(table_name):
     s3_hook = S3Hook(aws_conn_id="aws_default")
 
     # List all folders under the table's S3 path
-    table_path = f"{GOLD_PREFIX}{table_name}/"
+    table_path = f"{RAW_PREFIX}{table_name}/"
     folders = s3_hook.list_keys(bucket_name=S3_BUCKET, prefix=table_path)
 
     print(folders)
@@ -195,7 +195,7 @@ def load_raw_to_redshift(table_name):
     latest_date = max(date_folders, key=lambda d: datetime.strptime(d, "%Y%m%d"))
 
     # S3 Key for latest data
-    s3_key = f"{table_path}{latest_date}/{table_name}.parquet"
+    s3_key = f"{table_path}{latest_date}/{table_name}.csv"
     print(f"Loading from: s3://{S3_BUCKET}/{s3_key}")
 
     # Read Parquet file from S3
