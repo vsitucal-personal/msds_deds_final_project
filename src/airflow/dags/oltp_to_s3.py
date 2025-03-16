@@ -164,6 +164,8 @@ def load_gold_to_redshift(table_name):
     table_path = f"{GOLD_PREFIX}{table_name}/"
     folders = s3_hook.list_keys(bucket_name=S3_BUCKET, prefix=table_path, delimiter="/")
 
+    print([key.split("/")[-2] for key in folders])
+
     # Extract available date folders and sort them
     date_folders = [
         key.split("/")[-2]
