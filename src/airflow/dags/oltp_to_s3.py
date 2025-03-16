@@ -4,7 +4,9 @@ from io import BytesIO, StringIO
 
 import boto3
 import pandas as pd
+from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
+from airflow.providers.amazon.aws.hooks.redshift_sql import RedshiftSQLHook
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
@@ -26,6 +28,11 @@ def convert_decimal(obj):
 
 def list_tables():
     tables = ["customer", "vendor", "inventory"]
+    return tables
+
+
+def list_tables_redshift():
+    tables = ["category", "customer", "date", "inventory", "sales", "vendor"]
     return tables
 
 
@@ -150,6 +157,49 @@ def fetch_table_data_and_upload(table_name):
     conn.close()
 
 
+def load_gold_to_redshift(table_name):
+    s3_hook = S3Hook(aws_conn_id="aws_default")
+
+    # List all folders under the table's S3 path
+    table_path = f"{GOLD_PREFIX}{table_name}/"
+    folders = s3_hook.list_keys(bucket_name=S3_BUCKET, prefix=table_path, delimiter="/")
+
+    # Extract available date folders and sort them
+    date_folders = sorted(
+        [key.split("/")[-2] for key in folders if key.split("/")[-2].isdigit()],
+        reverse=True,
+    )
+
+    if not date_folders:
+        raise ValueError(f"No date folders found in {table_path}")
+
+    latest_date = date_folders[0]  # Pick latest date folder
+
+    # S3 Key for latest data
+    s3_key = f"{table_path}{latest_date}/{table_name}.parquet"
+    print(f"Loading from: s3://{S3_BUCKET}/{s3_key}")
+
+    # Read Parquet file from S3
+    obj = s3_hook.get_key(s3_key, bucket_name=S3_BUCKET)
+    df = pd.read_parquet(obj.get()["Body"])
+
+    # Connect to Redshift
+    redshift_hook = RedshiftSQLHook(redshift_conn_id="redshift_ecommerce")
+    conn = redshift_hook.get_conn()
+    cursor = conn.cursor()
+
+    # Upload DataFrame to Redshift
+    for _, row in df.iterrows():
+        values = tuple(row)
+        sql = f"INSERT INTO {table_name} VALUES {values}"
+        cursor.execute(sql)
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    print(f"Successfully loaded {table_name} into Redshift.")
+
+
 # Default args
 default_args = {
     "owner": "airflow",
@@ -172,14 +222,20 @@ list_tables_task = PythonOperator(
     dag=dag,
 )
 
+sync_task = EmptyOperator(
+    task_id="sync_all_uploads",
+    dag=dag,
+)
+
 # Generate dynamic tasks for each table
 table_names = list_tables()
+table_names_redshift = list_tables_redshift()
 
 fetch_ddb_then_upload = PythonOperator(
     task_id="fetch_ddb_then_upload", python_callable=fetch_ddb_then_upload_, dag=dag
 )
 
-list_tables_task >> fetch_ddb_then_upload
+list_tables_task >> fetch_ddb_then_upload >> sync_task
 
 for table in table_names:
     task = PythonOperator(
@@ -188,4 +244,12 @@ for table in table_names:
         op_kwargs={"table_name": table},
         dag=dag,
     )
-    list_tables_task >> task  # Set dependencies
+    list_tables_task >> task >> sync_task
+
+for table in table_names_redshift:
+    load_gold_task = PythonOperator(
+        task_id="load_gold_to_redshift",
+        python_callable=load_gold_to_redshift,
+        op_kwargs={"table_name": table},
+        dag=dag,
+    )
