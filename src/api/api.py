@@ -110,7 +110,7 @@ def get_vendor_by_name(vendor_name: str = Query(..., title="Vendor Name")):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT * FROM vendors WHERE vendor_name = %s;", (vendor_name,))
+        cursor.execute("SELECT * FROM vendor WHERE vendor_name = %s;", (vendor_name,))
         items = cursor.fetchall()
         if not items:
             raise HTTPException(
