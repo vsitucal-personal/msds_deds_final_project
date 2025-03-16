@@ -9,6 +9,14 @@ class Customer(BaseModel):
     email: str
     joined_at: str
 
+
+class CustomerResponse(BaseModel):
+    id: str
+    first_name: str
+    last_name: str
+    email: str
+    joined_at: str
+
     @field_validator("joined_at", mode="before")
     @classmethod
     def convert_datetime(cls, v):

@@ -2,7 +2,7 @@ import os
 
 import psycopg2.extras
 from fastapi import FastAPI, HTTPException, Query
-from models.models import Customer, Vendor
+from models.models import Customer, CustomerResponse, Vendor
 from psycopg2 import IntegrityError
 from psycopg2.extras import RealDictCursor
 
@@ -52,7 +52,7 @@ def create_customer(customer: Customer):
     return new_customer
 
 
-@app.get("/customers/", response_model=Customer)
+@app.get("/customers/", response_model=CustomerResponse)
 def get_customer(
     email: str = Query(
         ..., title="Customer Email", description="Email of the customer to retrieve"
