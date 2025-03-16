@@ -219,7 +219,7 @@ def load_gold_to_redshift(table_name):
             else:
                 values.append(value)  # Convert other types to string
 
-        sql = f"INSERT INTO {table_name} VALUES {values}"
+        sql = f"INSERT INTO {table_name} VALUES {tuple(values)}"
         cursor.execute(sql)
 
     conn.commit()
