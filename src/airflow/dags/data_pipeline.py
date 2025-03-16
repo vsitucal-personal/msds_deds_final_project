@@ -172,7 +172,7 @@ def fetch_table_data_and_upload(table_name):
     conn.close()
 
 
-def load_gold_to_redshift(table_name):
+def load_raw_to_redshift(table_name):
     s3_hook = S3Hook(aws_conn_id="aws_default")
 
     # List all folders under the table's S3 path
@@ -201,7 +201,7 @@ def load_gold_to_redshift(table_name):
     # Read Parquet file from S3
     obj = s3_hook.get_key(s3_key, bucket_name=S3_BUCKET)
     buffer = BytesIO(obj.get()["Body"].read())
-    df = pd.read_parquet(buffer, engine="pyarrow")
+    df = pd.read_csv(buffer)
 
     # Connect to Redshift
     redshift_hook = RedshiftSQLHook(redshift_conn_id="redshift_ecommerce")
@@ -285,8 +285,8 @@ for table in table_names:
 
 for table in table_names_redshift:
     to_olap_task = PythonOperator(
-        task_id=f"load_gold_{table}_to_redshift",
-        python_callable=load_gold_to_redshift,
+        task_id=f"load_raw_{table}_to_redshift",
+        python_callable=load_raw_to_redshift,
         op_kwargs={"table_name": table},
         dag=dag,
     )
