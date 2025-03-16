@@ -134,7 +134,12 @@ def store_cart(cart: Cart):
 def checkout(transaction: Transaction):
     """Converts a cart into a transaction and clears the cart."""
     # Get Cart
-    response = nosql_table.get_item(Key={"pk": f"USER#{transaction.user_id}"})
+    response = nosql_table.get_item(
+        Key={
+            "pk": f"USER#{transaction.user_id}",
+            "sk": "CART",
+        }
+    )
     cart_data = response.get("Item")
     cart = CartDynamo(**cart_data)
 
