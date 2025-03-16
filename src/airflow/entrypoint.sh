@@ -10,6 +10,11 @@ airflow connections add 'ecommerce' \
     --conn-password $POSTGRES_PASSWORD \
     --conn-port 5432
 
+airflow connections add 'aws_default' \
+    --conn-type 'aws' \
+    --conn-extra '{"aws_access_key_id": "'$AWS_ACCESS_KEY_ID'", "aws_secret_access_key": "'$AWS_SECRET_ACCESS_KEY'"}'
+
+
 airflow users create \
     --username $AF_USER \
     --password $AF_PASS \
