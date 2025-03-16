@@ -165,15 +165,16 @@ def load_gold_to_redshift(table_name):
     folders = s3_hook.list_keys(bucket_name=S3_BUCKET, prefix=table_path, delimiter="/")
 
     # Extract available date folders and sort them
-    date_folders = sorted(
-        [key.split("/")[-2] for key in folders if key.split("/")[-2].isdigit()],
-        reverse=True,
-    )
+    date_folders = [
+        key.split("/")[-2]
+        for key in folders
+        if key.split("/")[-2].isdigit() and len(key.split("/")[-2]) == 8
+    ]
 
     if not date_folders:
         raise ValueError(f"No date folders found in {table_path}")
 
-    latest_date = date_folders[0]  # Pick latest date folder
+    latest_date = max(date_folders, key=lambda d: datetime.strptime(d, "%Y%m%d"))
 
     # S3 Key for latest data
     s3_key = f"{table_path}{latest_date}/{table_name}.parquet"
