@@ -201,7 +201,7 @@ def load_gold_to_redshift(table_name):
     # Read Parquet file from S3
     obj = s3_hook.get_key(s3_key, bucket_name=S3_BUCKET)
     buffer = BytesIO(obj.get()["Body"].read())
-    df = pd.read_parquet(buffer)
+    df = pd.read_parquet(buffer, engine="pyarrow")
 
     # Connect to Redshift
     redshift_hook = RedshiftSQLHook(redshift_conn_id="redshift_ecommerce")
@@ -213,7 +213,9 @@ def load_gold_to_redshift(table_name):
         values = []
         for value in row:
             if isinstance(value, pd.Timestamp):
-                values.append(f"'{value.strftime('%Y-%m-%d %H:%M:%S')}'")  # Convert Timestamp to string
+                values.append(
+                    f"'{value.strftime('%Y-%m-%d %H:%M:%S')}'"
+                )  # Convert Timestamp to string
             else:
                 values.append(value)  # Convert other types to string
 
