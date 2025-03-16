@@ -4,6 +4,7 @@ from datetime import datetime
 
 import boto3
 import psycopg2.extras
+from boto3.dynamodb.types import TypeDeserializer
 from fastapi import FastAPI, HTTPException, Query
 from models.models import (
     Cart,
@@ -30,6 +31,12 @@ app = FastAPI()
 
 dynamodb = boto3.resource("dynamodb", "us-east-1")
 nosql_table = dynamodb.Table("mercado_ecommerce")
+deserializer = TypeDeserializer()
+
+
+def dynamo_to_python(dynamo_item):
+    """Converts a DynamoDB item to a standard Python dictionary."""
+    return {k: deserializer.deserialize(v) for k, v in dynamo_item.items()}
 
 
 def get_db_connection():
@@ -141,8 +148,8 @@ def checkout(transaction: Transaction):
         }
     )
     cart_data = response.get("Item")
-    print(cart_data)
-    cart = CartDynamo(**cart_data)
+    python_cart_dict = dynamo_to_python(cart_data)
+    cart = CartDynamo(**python_cart_dict)
 
     if not cart:
         raise HTTPException(status_code=404, detail="Cart not found")

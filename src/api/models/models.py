@@ -1,5 +1,4 @@
 from datetime import datetime
-from decimal import Decimal
 from typing import List
 
 from pydantic import BaseModel, field_validator
@@ -71,13 +70,6 @@ class CartItem(BaseModel):
     item_id: str
     vendor_id: str
     qty: int
-
-    @field_validator("qty", mode="before")
-    @classmethod
-    def convert_decimal(cls, v):
-        if isinstance(v, Decimal):
-            return int(v)  # Convert Decimal to int
-        return v
 
 
 class Cart(BaseModel):
