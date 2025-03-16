@@ -68,8 +68,8 @@ class InventoryItemResponse(BaseModel):
 
 class CartItem(BaseModel):
     item_id: str
-    vendor_id: str
     qty: int
+    vendor_id: str
 
 
 class Cart(BaseModel):
