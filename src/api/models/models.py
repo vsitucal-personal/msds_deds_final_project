@@ -1,4 +1,6 @@
-from pydantic import BaseModel
+from datetime import datetime
+
+from pydantic import BaseModel, field_validator
 
 
 class Customer(BaseModel):
@@ -6,6 +8,13 @@ class Customer(BaseModel):
     last_name: str
     email: str
     joined_at: str
+
+    @field_validator("joined_at", mode="before")
+    @classmethod
+    def convert_datetime(cls, v):
+        if isinstance(v, datetime):
+            return v.isoformat()
+        return str(v)  # Ensures non-datetime values are also converted to strings
 
 
 class Vendor(BaseModel):
