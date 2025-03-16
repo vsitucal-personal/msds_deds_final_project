@@ -217,9 +217,10 @@ def load_gold_to_redshift(table_name):
                     f"'{value.strftime('%Y-%m-%d %H:%M:%S')}'"
                 )  # Convert Timestamp to string
             else:
-                values.append(value)  # Convert other types to string
+                values.append(str(value))  # Convert other types to string
 
-        sql = f"INSERT INTO {table_name} VALUES {tuple(values)}"
+        values_str = ", ".join(values)
+        sql = f"INSERT INTO {table_name} VALUES {values_str}"
         cursor.execute(sql)
 
     conn.commit()
