@@ -221,6 +221,7 @@ def load_gold_to_redshift(table_name):
 
         values_str = ", ".join(values)
         sql = f"INSERT INTO {table_name} VALUES ({values_str})"
+        print(sql)
         cursor.execute(sql)
 
     conn.commit()
