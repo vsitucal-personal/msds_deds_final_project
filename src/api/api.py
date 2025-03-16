@@ -134,25 +134,22 @@ def checkout(transaction: Transaction):
     """Converts a cart into a transaction and clears the cart."""
     # Get Cart
     response = nosql_table.get_item(Key={"user_id": transaction.user_id})
-    cart = response.get("Item")
+    cart_data = response.get("Item")
+    cart = Cart(**cart_data)
 
     if not cart:
         raise HTTPException(status_code=404, detail="Cart not found")
 
     txn_id = str(uuid.uuid4())
     timestamp = datetime.now().isoformat()
-    sk = f"{transaction.user_id}#{transaction.vendor_id}#{timestamp}"
+    sk = f"USER{transaction.user_id}#{timestamp}"
 
     # Store full cart in a single transaction
     nosql_table.put_item(
         Item={
-            "txn_id": txn_id,
+            "pk": txn_id,
             "sk": sk,
-            "cart": cart["cart"],
-            "vendor_id": transaction.vendor_id,
-            "total_price": sum(
-                item["qty"] * 500 for item in cart["cart"]
-            ),  # Example price
+            "cart": cart.cart,
             "created_at": timestamp,
         }
     )

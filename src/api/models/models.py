@@ -78,6 +78,4 @@ class Cart(BaseModel):
 
 
 class Transaction(BaseModel):
-    pk: str
-    sk: str
-    cart: List[CartItem]
+    user_id: int
