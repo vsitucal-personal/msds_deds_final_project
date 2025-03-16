@@ -7,6 +7,7 @@ import psycopg2.extras
 from fastapi import FastAPI, HTTPException, Query
 from models.models import (
     Cart,
+    CartDynamo,
     Customer,
     InventoryItem,
     InventoryItemResponse,
@@ -120,7 +121,7 @@ def store_cart(cart: Cart):
 
     nosql_table.put_item(
         Item={
-            "pk": f"USER#{cart.pk}",
+            "pk": f"USER#{cart.user_id}",
             "sk": "CART",
             "cart": [item.dict() for item in cart.cart],
             "updated_at": datetime.now().isoformat(),
@@ -135,7 +136,7 @@ def checkout(transaction: Transaction):
     # Get Cart
     response = nosql_table.get_item(Key={"pk": f"USER#{transaction.user_id}"})
     cart_data = response.get("Item")
-    cart = Cart(**cart_data)
+    cart = CartDynamo(**cart_data)
 
     if not cart:
         raise HTTPException(status_code=404, detail="Cart not found")

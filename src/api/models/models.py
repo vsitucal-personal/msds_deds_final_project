@@ -77,5 +77,12 @@ class Cart(BaseModel):
     cart: List[CartItem]
 
 
+class CartDynamo(BaseModel):
+    pk: str
+    sk: str
+    cart: List[CartItem]
+    updated_at: str
+
+
 class Transaction(BaseModel):
     user_id: int
