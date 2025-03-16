@@ -185,7 +185,8 @@ def load_gold_to_redshift(table_name):
 
     # Read Parquet file from S3
     obj = s3_hook.get_key(s3_key, bucket_name=S3_BUCKET)
-    df = pd.read_parquet(obj.get()["Body"])
+    buffer = BytesIO(obj.get()["Body"].read())
+    df = pd.read_parquet(buffer)
 
     # Connect to Redshift
     redshift_hook = RedshiftSQLHook(redshift_conn_id="redshift_ecommerce")
