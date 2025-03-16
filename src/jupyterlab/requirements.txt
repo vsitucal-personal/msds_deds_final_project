@@ -8,3 +8,4 @@ sqlalchemy-redshift==0.8.14
 pandas
 faker
 redshift_connector
+boto3

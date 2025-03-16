@@ -87,5 +87,7 @@ services:
       REDSHIFT_DB: ${REDSHIFT_DB}
       REDSHIFT_USER: ${REDSHIFT_USER}
       REDSHIFT_PASSWORD: ${REDSHIFT_PASSWORD}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
     entrypoint: [ "sh", "-c" ]
     command: ["./entrypoint.sh"]
