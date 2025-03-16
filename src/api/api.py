@@ -123,7 +123,7 @@ def store_cart(cart: Cart):
         Item={
             "pk": f"USER#{cart.user_id}",
             "sk": "CART",
-            "cart": [item.dict() for item in cart.cart],
+            "cart": [item.model_dump() for item in cart.cart],
             "updated_at": datetime.now().isoformat(),
         }
     )
@@ -162,5 +162,10 @@ def checkout(transaction: Transaction):
     )
 
     # Clear Cart
-    nosql_table.delete_item(Key={"user_id": transaction.user_id})
+    nosql_table.delete_item(
+        Key={
+            "pk": f"USER#{transaction.user_id}",
+            "sk": "CART",
+        }
+    )
     return {"message": "Transaction completed", "transaction_id": txn_id}
