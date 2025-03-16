@@ -51,6 +51,8 @@ def upload_to_s3(df, s3_hook, today_str, file_format, buffer, prefix, table_name
     s3_key = f"{prefix}{table_name}/{today_str}/{table_name}.{file_format}"
     upload_func(data, key=s3_key, bucket_name=S3_BUCKET, replace=True)
     print(f"Uploaded {table_name}.{file_format} to s3://{S3_BUCKET}/{s3_key}")
+    buffer.seek(0)
+    buffer.truncate(0)
 
 
 def fetch_ddb_then_upload_():
