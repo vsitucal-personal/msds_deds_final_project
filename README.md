@@ -37,3 +37,13 @@ Services are deployed via Docker in the EC2 instance for ease of deployment and 
 [View Notebook](src/jupyterlab/notebooks/LT3_FINAL_PROJECT_REPORT.ipynb) \
 [View HTML Report](src/jupyterlab/notebooks/LT3_FINAL_PROJECT_REPORT.html) \
 [View PDF Report](src/jupyterlab/notebooks/LT3_FINAL_PROJECT_REPORT.pdf)
+
+## Spin up docker containers
+- Spin up
+```commandline
+docker compose --env-file <sample_env/env file> up --build -d
+```
+- Tear down
+```commandline
+docker compose down
+```
