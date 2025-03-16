@@ -11,7 +11,7 @@ class Customer(BaseModel):
 
 
 class CustomerResponse(BaseModel):
-    id: str
+    id: int
     first_name: str
     last_name: str
     email: str
