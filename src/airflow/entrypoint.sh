@@ -10,6 +10,14 @@ airflow connections add 'ecommerce' \
     --conn-password $POSTGRES_PASSWORD \
     --conn-port 5432
 
+airflow connections add 'redshift_ecommerce' \
+    --conn-type 'postgres' \
+    --conn-host $REDSHIFT_HOST \
+    --conn-schema $REDSHIFT_DB \
+    --conn-login $REDSHIFT_USER \
+    --conn-password $REDSHIFT_PASSWORD \
+    --conn-port 5439
+
 airflow connections add 'aws_default' \
     --conn-type 'aws' \
     --conn-extra '{"aws_access_key_id": "'$AWS_ACCESS_KEY_ID'", "aws_secret_access_key": "'$AWS_SECRET_ACCESS_KEY'"}'
