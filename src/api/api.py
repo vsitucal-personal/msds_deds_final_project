@@ -3,7 +3,14 @@ from datetime import datetime
 
 import psycopg2.extras
 from fastapi import FastAPI, HTTPException, Query
-from models.models import Customer, CustomerResponse, Vendor, VendorResponse
+from models.models import (
+    Customer,
+    CustomerResponse,
+    InventoryItem,
+    InventoryItemResponse,
+    Vendor,
+    VendorResponse,
+)
 from psycopg2 import IntegrityError
 from psycopg2.extras import RealDictCursor
 
@@ -113,3 +120,102 @@ def get_vendor_by_name(vendor_name: str = Query(..., title="Vendor Name")):
         conn.close()
 
     return vendor
+
+
+@app.post("/inventory/", response_model=InventoryItemResponse)
+def create_inventory(
+    item: InventoryItem, vendor_id: int = Query(..., title="Vendor ID")
+):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        updated_at_str = datetime.now().isoformat()  # Convert datetime to string
+        cursor.execute(
+            """
+            INSERT INTO inventory (item_name, category, price, updated_at, vendor_id)
+            VALUES (%s, %s, %s, %s, %s) RETURNING *;
+            """,
+            (item.item_name, item.category, item.price, updated_at_str, vendor_id),
+        )
+        new_item = cursor.fetchone()
+        conn.commit()
+    finally:
+        cursor.close()
+        conn.close()
+
+    return new_item
+
+
+@app.put("/inventory/{item_id}", response_model=InventoryItemResponse)
+def update_inventory(
+    item_id: int, item: InventoryItem, vendor_id: int = Query(..., title="Vendor ID")
+):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        updated_at_str = datetime.now().isoformat()  # Convert datetime to string
+        cursor.execute(
+            """
+            UPDATE inventory
+            SET item_name = %s, category = %s, price = %s, updated_at = %s, vendor_id = %s
+            WHERE id = %s RETURNING *;
+            """,
+            (
+                item.item_name,
+                item.category,
+                item.price,
+                updated_at_str,
+                vendor_id,
+                item_id,
+            ),
+        )
+        updated_item = cursor.fetchone()
+        if updated_item is None:
+            raise HTTPException(status_code=404, detail="Item not found")
+        conn.commit()
+    finally:
+        cursor.close()
+        conn.close()
+
+    return updated_item
+
+
+@app.get("/inventory/", response_model=list[InventoryItemResponse])
+def get_inventory_by_name(item_name: str = Query(None, title="Item Name")):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        if item_name:
+            # Use ILIKE for case-insensitive partial search
+            cursor.execute(
+                "SELECT * FROM inventory WHERE item_name ILIKE %s;", (f"%{item_name}%",)
+            )
+        else:
+            cursor.execute("SELECT * FROM inventory;")
+
+        items = cursor.fetchall()
+        if not items:
+            raise HTTPException(status_code=404, detail="No matching items found")
+    finally:
+        cursor.close()
+        conn.close()
+
+    return items
+
+
+@app.get("/inventory/vendor/", response_model=list[InventoryItemResponse])
+def get_inventory_by_vendor(vendor_id: int = Query(..., title="Vendor ID")):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT * FROM inventory WHERE vendor_id = %s;", (vendor_id,))
+        items = cursor.fetchall()
+        if not items:
+            raise HTTPException(
+                status_code=404, detail="No items found for this vendor"
+            )
+    finally:
+        cursor.close()
+        conn.close()
+
+    return items
