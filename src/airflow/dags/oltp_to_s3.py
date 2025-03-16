@@ -247,9 +247,10 @@ for table in table_names:
     list_tables_task >> task >> sync_task
 
 for table in table_names_redshift:
-    load_gold_task = PythonOperator(
-        task_id="load_gold_to_redshift",
+    to_olap_task = PythonOperator(
+        task_id=f"load_gold_{table}_to_redshift",
         python_callable=load_gold_to_redshift,
         op_kwargs={"table_name": table},
         dag=dag,
     )
+    sync_task >> to_olap_task
