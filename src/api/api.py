@@ -1,8 +1,18 @@
 import os
+import uuid
+from datetime import datetime
 
+import boto3
 import psycopg2.extras
 from fastapi import FastAPI, HTTPException, Query
-from models.models import Customer, Vendor
+from models.models import (
+    Cart,
+    Customer,
+    InventoryItem,
+    InventoryItemResponse,
+    Transaction,
+    Vendor,
+)
 from psycopg2 import IntegrityError
 from psycopg2.extras import RealDictCursor
 
@@ -16,6 +26,9 @@ DATABASE_URL = (
     f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{HOST}:5432/{POSTGRES_DB}"
 )
 app = FastAPI()
+
+dynamodb = boto3.resource("dynamodb")  # Change to your AWS region
+nosql_table = dynamodb.Table("mercado_ecommerce")
 
 
 def get_db_connection():
@@ -37,7 +50,7 @@ def create_customer(customer: Customer):
                 customer.first_name,
                 customer.last_name,
                 customer.email,
-                customer.joined_at,
+                datetime.now().isoformat(),
             ),
         )
         new_customer = cursor.fetchone()
@@ -52,26 +65,6 @@ def create_customer(customer: Customer):
     return new_customer
 
 
-@app.get("/customers/", response_model=Customer)
-def get_customer(
-    email: str = Query(
-        ..., title="Customer Email", description="Email of the customer to retrieve"
-    )
-):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute("SELECT * FROM customer WHERE email = %s;", (email,))
-        customer = cursor.fetchone()
-        if customer is None:
-            raise HTTPException(status_code=404, detail="Customer not found")
-    finally:
-        cursor.close()
-        conn.close()
-
-    return customer
-
-
 @app.post("/vendors/", status_code=201)
 def register_vendor(vendor: Vendor):
     """Registers a new vendor in the database."""
@@ -83,7 +76,7 @@ def register_vendor(vendor: Vendor):
             INSERT INTO vendor (vendor_name, region, joined_at)
             VALUES (%s, %s, %s) RETURNING *;
             """,
-            (vendor.vendor_name, vendor.region, vendor.joined_at),
+            (vendor.vendor_name, vendor.region, datetime.now().isoformat()),
         )
         new_vendor = cursor.fetchone()
         conn.commit()
@@ -97,18 +90,72 @@ def register_vendor(vendor: Vendor):
     return new_vendor
 
 
-@app.get("/vendors/")
-def get_vendor_by_name(vendor_name: str = Query(..., title="Vendor Name")):
-    """Fetches a vendor by name."""
+@app.post("/inventory/", response_model=InventoryItemResponse)
+def create_inventory(
+    item: InventoryItem, vendor_id: int = Query(..., title="Vendor ID")
+):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT * FROM vendor WHERE vendor_name = %s;", (vendor_name,))
-        vendor = cursor.fetchone()
-        if not vendor:
-            raise HTTPException(status_code=404, detail="Vendor not found")
+        updated_at_str = datetime.now().isoformat()  # Convert datetime to string
+        cursor.execute(
+            """
+            INSERT INTO inventory (item_name, category, price, updated_at, vendor_id)
+            VALUES (%s, %s, %s, %s, %s) RETURNING *;
+            """,
+            (item.item_name, item.category, item.price, updated_at_str, vendor_id),
+        )
+        new_item = cursor.fetchone()
+        conn.commit()
     finally:
         cursor.close()
         conn.close()
 
-    return vendor
+    return new_item
+
+
+@app.post("/cart/")
+def store_cart(cart_request: Cart):
+    """Stores a user's cart in DynamoDB."""
+
+    nosql_table.put_item(
+        Item={
+            "user_id": cart_request.user_id,
+            "cart": [item.dict() for item in cart_request.cart],
+            "updated_at": datetime.now().isoformat(),
+        }
+    )
+    return {"message": "Cart saved successfully", "user_id": cart_request.user_id}
+
+
+@app.post("/checkout/")
+def checkout(transaction: Transaction):
+    """Converts a cart into a transaction and clears the cart."""
+    # Get Cart
+    response = nosql_table.get_item(Key={"user_id": transaction.user_id})
+    cart = response.get("Item")
+
+    if not cart:
+        raise HTTPException(status_code=404, detail="Cart not found")
+
+    txn_id = str(uuid.uuid4())
+    timestamp = datetime.now().isoformat()
+    sk = f"{transaction.user_id}#{transaction.vendor_id}#{timestamp}"
+
+    # Store full cart in a single transaction
+    nosql_table.put_item(
+        Item={
+            "txn_id": txn_id,
+            "sk": sk,
+            "cart": cart["cart"],
+            "vendor_id": transaction.vendor_id,
+            "total_price": sum(
+                item["qty"] * 500 for item in cart["cart"]
+            ),  # Example price
+            "created_at": timestamp,
+        }
+    )
+
+    # Clear Cart
+    nosql_table.delete_item(Key={"user_id": transaction.user_id})
+    return {"message": "Transaction completed", "transaction_id": txn_id}
