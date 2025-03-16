@@ -162,7 +162,7 @@ def load_gold_to_redshift(table_name):
 
     # List all folders under the table's S3 path
     table_path = f"{GOLD_PREFIX}{table_name}/"
-    folders = s3_hook.list_keys(bucket_name=S3_BUCKET, prefix=table_path, delimiter="/")
+    folders = s3_hook.list_keys(bucket_name=S3_BUCKET, prefix=table_path)
 
     print(folders)
     print([key.split("/")[-2] for key in folders])
