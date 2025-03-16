@@ -105,21 +105,22 @@ def register_vendor(vendor: Vendor):
     return new_vendor
 
 
-@app.get("/vendors/", response_model=VendorResponse)
+@app.get("/vendors/", response_model=list[VendorResponse])
 def get_vendor_by_name(vendor_name: str = Query(..., title="Vendor Name")):
-    """Fetches a vendor by name."""
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT * FROM vendor WHERE vendor_name = %s;", (vendor_name,))
-        vendor = cursor.fetchone()
-        if not vendor:
-            raise HTTPException(status_code=404, detail="Vendor not found")
+        cursor.execute("SELECT * FROM vendors WHERE vendor_name = %s;", (vendor_name,))
+        items = cursor.fetchall()
+        if not items:
+            raise HTTPException(
+                status_code=404, detail="No items found for this vendor"
+            )
     finally:
         cursor.close()
         conn.close()
 
-    return vendor
+    return items
 
 
 @app.post("/inventory/", response_model=InventoryItemResponse)

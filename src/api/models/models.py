@@ -54,6 +54,7 @@ class InventoryItemResponse(BaseModel):
     item_name: str
     category: str
     price: float
+    vendor_id: int
     updated_at: str
 
     @field_validator("updated_at", mode="before")
