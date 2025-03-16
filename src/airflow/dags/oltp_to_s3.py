@@ -1,6 +1,8 @@
 from datetime import datetime
+from decimal import Decimal
 from io import BytesIO, StringIO
 
+import boto3
 import pandas as pd
 from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
@@ -16,9 +18,89 @@ WORK_PREFIX = "work/"
 GOLD_PREFIX = "gold/"
 
 
+def convert_decimal(obj):
+    if isinstance(obj, Decimal):
+        return float(obj)
+    return obj
+
+
 def list_tables():
     tables = ["customer", "vendor", "inventory"]
     return tables
+
+
+def upload_to_s3(df, s3_hook, today_str, file_format, buffer, prefix, table_name):
+    """Handles the upload of a DataFrame to S3 with dynamic table names."""
+    if file_format == "csv":
+        df.to_csv(buffer, index=False)
+        data = buffer.getvalue()
+        upload_func = s3_hook.load_string
+    else:  # Parquet
+        df.to_parquet(buffer, index=False, engine="pyarrow", compression="snappy")
+        data = buffer.getvalue()
+        upload_func = s3_hook.load_bytes
+
+    # Upload to S3 with dynamic key naming
+    s3_key = f"{prefix}{table_name}/{today_str}/{table_name}.{file_format}"
+    upload_func(data, key=s3_key, bucket_name=S3_BUCKET, replace=True)
+    print(f"Uploaded {table_name}.{file_format} to s3://{S3_BUCKET}/{s3_key}")
+
+
+def fetch_ddb_then_upload_():
+    dynamodb = boto3.resource("dynamodb", "us-east-1")
+    table = dynamodb.Table("mercado_ecommerce")
+
+    filtered_items = [
+        item for item in table.scan()["Items"] if item.get("sk") != "CART"
+    ]
+    df = pd.DataFrame(filtered_items)
+    df = df.explode("cart")  # Expand each cart item into its own row
+
+    # Convert cart dictionary to separate columns
+    cart_df = pd.json_normalize(
+        df["cart"].apply(lambda x: {k: convert_decimal(v) for k, v in x.items()})
+    )
+
+    # Merge with original DataFrame and drop the old cart column
+    df = df.drop(columns=["cart"]).reset_index(drop=True)
+    df = pd.concat([df, cart_df], axis=1)
+
+    df["customer_id"] = (
+        df["sk"].str.split("#").str[0].str.replace("USER", "", regex=False)
+    )
+
+    # Convert timestamp to datetime and extract date_id
+    df["created_at"] = pd.to_datetime(df["created_at"])
+    df["date_id"] = df["created_at"].dt.strftime("%Y%m%d")
+
+    category_df = pd.DataFrame({"category_id": [1], "category_name": ["General"]})
+    df["category_id"] = category_df.loc[0, "category_id"]
+
+    # Create a separate date DataFrame
+    date_df = df[["date_id"]].drop_duplicates().copy()
+    date_df["year"] = df["created_at"].dt.year
+    date_df["month"] = df["created_at"].dt.month
+    date_df["day"] = df["created_at"].dt.day
+
+    df = df.drop(columns=["sk", "pk", "created_at"]).reset_index(drop=True)
+
+    s3_hook = S3Hook(aws_conn_id="aws_default")
+
+    zones = {
+        "raw": ("csv", StringIO(), RAW_PREFIX),
+        "clean": ("parquet", BytesIO(), CLEAN_PREFIX),
+        "work": ("parquet", BytesIO(), WORK_PREFIX),
+        "gold": ("parquet", BytesIO(), GOLD_PREFIX),
+    }
+
+    today_str = datetime.today().strftime("%Y%m%d")
+
+    for zone, (file_format, buffer, prefix) in zones.items():
+        upload_to_s3(df, s3_hook, today_str, file_format, buffer, prefix, "sales")
+        upload_to_s3(
+            category_df, s3_hook, today_str, file_format, buffer, prefix, "category"
+        )
+        upload_to_s3(date_df, s3_hook, today_str, file_format, buffer, prefix, "date")
 
 
 def fetch_table_data_and_upload(table_name):
@@ -59,7 +141,7 @@ def fetch_table_data_and_upload(table_name):
             upload_func = s3_hook.load_bytes
 
         # Upload to S3
-        s3_key = f"{prefix}{today_str}/{table_name}.{file_format}"
+        s3_key = f"{prefix}{table_name}/{today_str}/{table_name}.{file_format}"
         upload_func(data, key=s3_key, bucket_name=S3_BUCKET, replace=True)
         print(f"Uploaded {table_name}.{file_format} to s3://{S3_BUCKET}/{s3_key}")
 
@@ -92,6 +174,12 @@ list_tables_task = PythonOperator(
 
 # Generate dynamic tasks for each table
 table_names = list_tables()
+
+fetch_ddb_then_upload = PythonOperator(
+    task_id="fetch_ddb_then_upload", python_callable=fetch_ddb_then_upload_, dag=dag
+)
+
+list_tables_task >> fetch_ddb_then_upload
 
 for table in table_names:
     task = PythonOperator(
