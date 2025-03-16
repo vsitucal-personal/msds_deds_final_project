@@ -3,6 +3,7 @@ jupyterlab_execute_time
 pgspecial<2
 psycopg2-binary
 jupysql
-sqlalchemy==1.4.54
-sqlalchemy-redshift==0.8.14
+# sqlalchemy==1.4.54
+# sqlalchemy-redshift==0.8.14
 pandas
+faker
