@@ -27,7 +27,7 @@ DATABASE_URL = (
 )
 app = FastAPI()
 
-dynamodb = boto3.resource("dynamodb")  # Change to your AWS region
+dynamodb = boto3.resource("dynamodb", "us-east-1")
 nosql_table = dynamodb.Table("mercado_ecommerce")
 
 
