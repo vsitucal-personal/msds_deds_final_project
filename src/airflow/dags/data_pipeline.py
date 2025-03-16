@@ -220,7 +220,7 @@ def load_gold_to_redshift(table_name):
                 values.append(str(value))  # Convert other types to string
 
         values_str = ", ".join(values)
-        sql = f"INSERT INTO {table_name} VALUES {values_str}"
+        sql = f"INSERT INTO {table_name} VALUES ({values_str})"
         cursor.execute(sql)
 
     conn.commit()
