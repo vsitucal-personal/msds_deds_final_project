@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 import psycopg2.extras
 from fastapi import FastAPI, HTTPException, Query
@@ -37,7 +38,7 @@ def create_customer(customer: Customer):
                 customer.first_name,
                 customer.last_name,
                 customer.email,
-                customer.joined_at,
+                datetime.now().isoformat(),
             ),
         )
         new_customer = cursor.fetchone()
@@ -83,7 +84,7 @@ def register_vendor(vendor: Vendor):
             INSERT INTO vendor (vendor_name, region, joined_at)
             VALUES (%s, %s, %s) RETURNING *;
             """,
-            (vendor.vendor_name, vendor.region, vendor.joined_at),
+            (vendor.vendor_name, vendor.region, datetime.now().isoformat()),
         )
         new_vendor = cursor.fetchone()
         conn.commit()
