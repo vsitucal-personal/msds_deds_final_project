@@ -1,6 +1,6 @@
 FROM python:3.9
 WORKDIR /api
 COPY api/ /api
-RUN pip install --no-cache-dir fastapi psycopg2-binary uvicorn
+RUN pip install --no-cache-dir fastapi boto3 psycopg2-binary uvicorn
 ENV PYTHONPATH="/api"
 EXPOSE 8000
