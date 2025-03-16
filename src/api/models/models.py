@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import List
 
 from pydantic import BaseModel, field_validator
@@ -70,8 +71,8 @@ class CartItem(BaseModel):
     item_id: str
     qty: int
     vendor_id: str
-    unit_price: float
-    total_price: float
+    unit_price: Decimal
+    total_price: Decimal
 
 
 class Cart(BaseModel):
