@@ -103,7 +103,7 @@ def fetch_ddb_then_upload_():
             "total_price",
         ]
     ]
-    date_df = date_df[["date_id", "year", "month", "day", ""]]
+    date_df = date_df[["date_id", "year", "month", "day"]]
 
     s3_hook = S3Hook(aws_conn_id="aws_default")
 
