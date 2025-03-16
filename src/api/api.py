@@ -176,7 +176,7 @@ def checkout(transaction: Transaction):
         Item={
             "pk": txn_id,
             "sk": sk,
-            "cart": cart.cart,
+            "cart": [item.model_dump() for item in cart.cart],
             "created_at": timestamp,
         }
     )
