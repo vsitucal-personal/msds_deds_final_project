@@ -1,15 +1,17 @@
 import os
+import uuid
 from datetime import datetime
 
+import boto3
 import psycopg2.extras
 from fastapi import FastAPI, HTTPException, Query
 from models.models import (
+    Cart,
     Customer,
-    CustomerResponse,
     InventoryItem,
     InventoryItemResponse,
+    Transaction,
     Vendor,
-    VendorResponse,
 )
 from psycopg2 import IntegrityError
 from psycopg2.extras import RealDictCursor
@@ -24,6 +26,9 @@ DATABASE_URL = (
     f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{HOST}:5432/{POSTGRES_DB}"
 )
 app = FastAPI()
+
+dynamodb = boto3.resource("dynamodb")  # Change to your AWS region
+nosql_table = dynamodb.Table("mercado_ecommerce")
 
 
 def get_db_connection():
@@ -60,26 +65,6 @@ def create_customer(customer: Customer):
     return new_customer
 
 
-@app.get("/customers/", response_model=CustomerResponse)
-def get_customer(
-    email: str = Query(
-        ..., title="Customer Email", description="Email of the customer to retrieve"
-    )
-):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute("SELECT * FROM customer WHERE email = %s;", (email,))
-        customer = cursor.fetchone()
-        if customer is None:
-            raise HTTPException(status_code=404, detail="Customer not found")
-    finally:
-        cursor.close()
-        conn.close()
-
-    return customer
-
-
 @app.post("/vendors/", status_code=201)
 def register_vendor(vendor: Vendor):
     """Registers a new vendor in the database."""
@@ -103,26 +88,6 @@ def register_vendor(vendor: Vendor):
         conn.close()
 
     return new_vendor
-
-
-@app.get("/vendors/", response_model=list[VendorResponse])
-def get_vendor_by_name(vendor_name: str = Query(..., title="Vendor Name")):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute(
-            "SELECT * FROM vendor WHERE vendor_name ILIKE %s;", (vendor_name,)
-        )
-        items = cursor.fetchall()
-        if not items:
-            raise HTTPException(
-                status_code=404, detail="No items found for this vendor"
-            )
-    finally:
-        cursor.close()
-        conn.close()
-
-    return items
 
 
 @app.post("/inventory/", response_model=InventoryItemResponse)
@@ -149,76 +114,48 @@ def create_inventory(
     return new_item
 
 
-@app.put("/inventory/{item_id}", response_model=InventoryItemResponse)
-def update_inventory(
-    item_id: int, item: InventoryItem, vendor_id: int = Query(..., title="Vendor ID")
-):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        updated_at_str = datetime.now().isoformat()  # Convert datetime to string
-        cursor.execute(
-            """
-            UPDATE inventory
-            SET item_name = %s, category = %s, price = %s, updated_at = %s, vendor_id = %s
-            WHERE id = %s RETURNING *;
-            """,
-            (
-                item.item_name,
-                item.category,
-                item.price,
-                updated_at_str,
-                vendor_id,
-                item_id,
-            ),
-        )
-        updated_item = cursor.fetchone()
-        if updated_item is None:
-            raise HTTPException(status_code=404, detail="Item not found")
-        conn.commit()
-    finally:
-        cursor.close()
-        conn.close()
+@app.post("/cart/")
+def store_cart(cart_request: Cart):
+    """Stores a user's cart in DynamoDB."""
 
-    return updated_item
+    nosql_table.put_item(
+        Item={
+            "user_id": cart_request.user_id,
+            "cart": [item.dict() for item in cart_request.cart],
+            "updated_at": datetime.now().isoformat(),
+        }
+    )
+    return {"message": "Cart saved successfully", "user_id": cart_request.user_id}
 
 
-@app.get("/inventory/", response_model=list[InventoryItemResponse])
-def get_inventory_by_name(item_name: str = Query(None, title="Item Name")):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        if item_name:
-            # Use ILIKE for case-insensitive partial search
-            cursor.execute(
-                "SELECT * FROM inventory WHERE item_name ILIKE %s;", (f"%{item_name}%",)
-            )
-        else:
-            cursor.execute("SELECT * FROM inventory;")
+@app.post("/checkout/")
+def checkout(transaction: Transaction):
+    """Converts a cart into a transaction and clears the cart."""
+    # Get Cart
+    response = nosql_table.get_item(Key={"user_id": transaction.user_id})
+    cart = response.get("Item")
 
-        items = cursor.fetchall()
-        if not items:
-            raise HTTPException(status_code=404, detail="No matching items found")
-    finally:
-        cursor.close()
-        conn.close()
+    if not cart:
+        raise HTTPException(status_code=404, detail="Cart not found")
 
-    return items
+    txn_id = str(uuid.uuid4())
+    timestamp = datetime.now().isoformat()
+    sk = f"{transaction.user_id}#{transaction.vendor_id}#{timestamp}"
 
+    # Store full cart in a single transaction
+    nosql_table.put_item(
+        Item={
+            "txn_id": txn_id,
+            "sk": sk,
+            "cart": cart["cart"],
+            "vendor_id": transaction.vendor_id,
+            "total_price": sum(
+                item["qty"] * 500 for item in cart["cart"]
+            ),  # Example price
+            "created_at": timestamp,
+        }
+    )
 
-@app.get("/inventory/vendor/", response_model=list[InventoryItemResponse])
-def get_inventory_by_vendor(vendor_id: int = Query(..., title="Vendor ID")):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute("SELECT * FROM inventory WHERE vendor_id = %s;", (vendor_id,))
-        items = cursor.fetchall()
-        if not items:
-            raise HTTPException(
-                status_code=404, detail="No items found for this vendor"
-            )
-    finally:
-        cursor.close()
-        conn.close()
-
-    return items
+    # Clear Cart
+    nosql_table.delete_item(Key={"user_id": transaction.user_id})
+    return {"message": "Transaction completed", "transaction_id": txn_id}

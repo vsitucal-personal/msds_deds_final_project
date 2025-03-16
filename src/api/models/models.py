@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import List
 
 from pydantic import BaseModel, field_validator
 
@@ -63,3 +64,21 @@ class InventoryItemResponse(BaseModel):
         if isinstance(v, datetime):
             return v.isoformat()
         return str(v)  # Ensures non-datetime values are also converted to strings
+
+
+class CartItem(BaseModel):
+    item_id: str
+    vendor_id: str
+    qty: int
+
+
+class Cart(BaseModel):
+    pk: str
+    sk: str
+    cart: List[CartItem]
+
+
+class Transaction(BaseModel):
+    pk: str
+    sk: str
+    cart: List[CartItem]
