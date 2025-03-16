@@ -120,7 +120,7 @@ def store_cart(cart: Cart):
 
     nosql_table.put_item(
         Item={
-            "pk": cart.pk,
+            "pk": f"USER#{cart.pk}",
             "sk": "CART",
             "cart": [item.dict() for item in cart.cart],
             "updated_at": datetime.now().isoformat(),
@@ -133,7 +133,7 @@ def store_cart(cart: Cart):
 def checkout(transaction: Transaction):
     """Converts a cart into a transaction and clears the cart."""
     # Get Cart
-    response = nosql_table.get_item(Key={"user_id": transaction.user_id})
+    response = nosql_table.get_item(Key={"pk": f"USER#{transaction.user_id}"})
     cart_data = response.get("Item")
     cart = Cart(**cart_data)
 

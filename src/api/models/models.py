@@ -73,7 +73,7 @@ class CartItem(BaseModel):
 
 
 class Cart(BaseModel):
-    pk: str
+    user_id: int
     cart: List[CartItem]
 
 
