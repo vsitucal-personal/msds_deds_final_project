@@ -5,4 +5,4 @@ USER root
 RUN chmod +x $AIRFLOW_HOME/entrypoint.sh
 USER airflow
 WORKDIR $AIRFLOW_HOME
-pip install -r requirements.txt
+RUN pip install -r requirements.txt
