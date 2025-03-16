@@ -213,11 +213,11 @@ def load_gold_to_redshift(table_name):
         values = []
         for value in row:
             if isinstance(value, pd.Timestamp):
-                values.append(
-                    f"'{value.strftime('%Y-%m-%d %H:%M:%S')}'"
-                )  # Convert Timestamp to string
+                values.append("'{}'".format(value.strftime("%Y-%m-%d %H:%M:%S")))
+            elif isinstance(value, str):
+                values.append("'{}'".format(value.replace("'", "''")))
             else:
-                values.append(str(value))  # Convert other types to string
+                values.append(str(value))
 
         values_str = ", ".join(values)
         sql = f"INSERT INTO {table_name} VALUES ({values_str})"
