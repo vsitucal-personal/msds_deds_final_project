@@ -120,7 +120,8 @@ def store_cart(cart_request: Cart):
 
     nosql_table.put_item(
         Item={
-            "user_id": cart_request.user_id,
+            "pk": cart_request.pk,
+            "sk": "CART",
             "cart": [item.dict() for item in cart_request.cart],
             "updated_at": datetime.now().isoformat(),
         }

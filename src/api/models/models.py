@@ -74,7 +74,6 @@ class CartItem(BaseModel):
 
 class Cart(BaseModel):
     pk: str
-    sk: str
     cart: List[CartItem]
 
 
