@@ -3,7 +3,7 @@ from datetime import datetime
 
 import psycopg2.extras
 from fastapi import FastAPI, HTTPException, Query
-from models.models import Customer, CustomerResponse, Vendor
+from models.models import Customer, CustomerResponse, Vendor, VendorResponse
 from psycopg2 import IntegrityError
 from psycopg2.extras import RealDictCursor
 
@@ -98,7 +98,7 @@ def register_vendor(vendor: Vendor):
     return new_vendor
 
 
-@app.get("/vendors/")
+@app.get("/vendors/", response_model=VendorResponse)
 def get_vendor_by_name(vendor_name: str = Query(..., title="Vendor Name")):
     """Fetches a vendor by name."""
     conn = get_db_connection()

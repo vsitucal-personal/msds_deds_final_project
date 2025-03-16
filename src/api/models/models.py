@@ -47,7 +47,6 @@ class InventoryItem(BaseModel):
     item_name: str
     category: str
     price: float
-    updated_at: str
 
 
 class InventoryItemResponse(BaseModel):
@@ -55,6 +54,7 @@ class InventoryItemResponse(BaseModel):
     item_name: str
     category: str
     price: float
+    updated_at: str
 
     @field_validator("updated_at", mode="before")
     @classmethod
