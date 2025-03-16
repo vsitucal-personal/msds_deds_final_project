@@ -242,6 +242,12 @@ list_tables_task = PythonOperator(
     dag=dag,
 )
 
+list_tables_redshift_task = PythonOperator(
+    task_id="list_tables_redshift",
+    python_callable=list_tables_redshift,
+    dag=dag,
+)
+
 sync_task = EmptyOperator(
     task_id="sync_all_uploads",
     dag=dag,
@@ -255,6 +261,7 @@ fetch_ddb_then_upload = PythonOperator(
     task_id="fetch_ddb_then_upload", python_callable=fetch_ddb_then_upload_, dag=dag
 )
 
+list_tables_redshift_task >> list_tables_task
 list_tables_task >> fetch_ddb_then_upload >> sync_task
 
 for table in table_names:
