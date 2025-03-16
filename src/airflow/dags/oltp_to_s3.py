@@ -12,6 +12,7 @@ from airflow import DAG
 S3_BUCKET = "mercado-ecommerce"
 RAW_PREFIX = "raw/"
 CLEAN_PREFIX = "clean/"
+WORK_PREFIX = "work/"
 GOLD_PREFIX = "gold/"
 
 
@@ -37,32 +38,30 @@ def fetch_table_data_and_upload(table_name):
     # Initialize S3 Hook
     s3_hook = S3Hook(aws_conn_id="aws_default")
 
-    # 1. Upload CSV to "raw/"
-    csv_buffer = StringIO()
-    df.to_csv(csv_buffer, index=False)
-    raw_s3_key = f"{RAW_PREFIX}{table_name}.csv"
-    s3_hook.load_string(
-        csv_buffer.getvalue(), key=raw_s3_key, bucket_name=S3_BUCKET, replace=True
-    )
-    print(f"Uploaded {table_name}.csv to s3://{S3_BUCKET}/{raw_s3_key}")
+    zones = {
+        "raw": ("csv", StringIO(), RAW_PREFIX),
+        "clean": ("parquet", BytesIO(), CLEAN_PREFIX),
+        "work": ("parquet", BytesIO(), WORK_PREFIX),
+        "gold": ("parquet", BytesIO(), GOLD_PREFIX),
+    }
 
-    # Convert to Parquet format
-    parquet_buffer = BytesIO()
-    df.to_parquet(parquet_buffer, index=False, engine="pyarrow", compression="snappy")
+    today_str = datetime.today().strftime("%Y%m%d")
 
-    # 2. Upload Parquet to "clean/"
-    clean_s3_key = f"{CLEAN_PREFIX}{table_name}.parquet"
-    s3_hook.load_bytes(
-        parquet_buffer.getvalue(), key=clean_s3_key, bucket_name=S3_BUCKET, replace=True
-    )
-    print(f"Uploaded {table_name}.parquet to s3://{S3_BUCKET}/{clean_s3_key}")
+    for zone, (file_format, buffer, prefix) in zones.items():
+        # Convert DataFrame to the appropriate format
+        if file_format == "csv":
+            df.to_csv(buffer, index=False)
+            data = buffer.getvalue()
+            upload_func = s3_hook.load_string
+        else:  # parquet
+            df.to_parquet(buffer, index=False, engine="pyarrow", compression="snappy")
+            data = buffer.getvalue()
+            upload_func = s3_hook.load_bytes
 
-    # 3. Upload Parquet to "gold/"
-    gold_s3_key = f"{GOLD_PREFIX}{table_name}.parquet"
-    s3_hook.load_bytes(
-        parquet_buffer.getvalue(), key=gold_s3_key, bucket_name=S3_BUCKET, replace=True
-    )
-    print(f"Uploaded {table_name}.parquet to s3://{S3_BUCKET}/{gold_s3_key}")
+        # Upload to S3
+        s3_key = f"{prefix}{today_str}/{table_name}.{file_format}"
+        upload_func(data, key=s3_key, bucket_name=S3_BUCKET, replace=True)
+        print(f"Uploaded {table_name}.{file_format} to s3://{S3_BUCKET}/{s3_key}")
 
     # Close DB connection
     cursor.close()
@@ -78,7 +77,7 @@ default_args = {
 
 # Define DAG
 dag = DAG(
-    "ecommerce_to_s3",
+    "oltp_to_s3",
     default_args=default_args,
     schedule_interval="@daily",
     catchup=False,
