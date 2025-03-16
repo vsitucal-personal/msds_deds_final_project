@@ -141,6 +141,7 @@ def checkout(transaction: Transaction):
         }
     )
     cart_data = response.get("Item")
+    print(cart_data)
     cart = CartDynamo(**cart_data)
 
     if not cart:
