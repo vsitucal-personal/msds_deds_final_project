@@ -115,18 +115,18 @@ def create_inventory(
 
 
 @app.post("/cart/")
-def store_cart(cart_request: Cart):
+def store_cart(cart: Cart):
     """Stores a user's cart in DynamoDB."""
 
     nosql_table.put_item(
         Item={
-            "pk": cart_request.pk,
+            "pk": cart.pk,
             "sk": "CART",
-            "cart": [item.dict() for item in cart_request.cart],
+            "cart": [item.dict() for item in cart.cart],
             "updated_at": datetime.now().isoformat(),
         }
     )
-    return {"message": "Cart saved successfully", "user_id": cart_request.user_id}
+    return cart
 
 
 @app.post("/checkout/")
