@@ -1,6 +1,7 @@
 import os
 import uuid
 from datetime import datetime
+from decimal import Decimal
 
 import boto3
 import psycopg2.extras
@@ -37,6 +38,18 @@ deserializer = TypeDeserializer()
 def dynamo_to_python(dynamo_item):
     """Converts a DynamoDB item to a standard Python dictionary."""
     return {k: deserializer.deserialize(v) for k, v in dynamo_item.items()}
+
+
+def convert_decimal(data):
+    """Recursively convert Decimal to int or float in a dictionary."""
+    if isinstance(data, list):
+        return [convert_decimal(i) for i in data]
+    elif isinstance(data, dict):
+        return {k: convert_decimal(v) for k, v in data.items()}
+    elif isinstance(data, Decimal):
+        return int(data) if data % 1 == 0 else float(data)
+    else:
+        return data
 
 
 def get_db_connection():
@@ -148,7 +161,7 @@ def checkout(transaction: Transaction):
         }
     )
     cart_data = response.get("Item")
-    python_cart_dict = dynamo_to_python(cart_data)
+    python_cart_dict = convert_decimal(cart_data)
     cart = CartDynamo(**python_cart_dict)
 
     if not cart:
