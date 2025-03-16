@@ -210,7 +210,13 @@ def load_gold_to_redshift(table_name):
 
     # Upload DataFrame to Redshift
     for _, row in df.iterrows():
-        values = tuple(row)
+        values = []
+        for value in row:
+            if isinstance(value, pd.Timestamp):
+                values.append(f"'{value.strftime('%Y-%m-%d %H:%M:%S')}'")  # Convert Timestamp to string
+            else:
+                values.append(value)  # Convert other types to string
+
         sql = f"INSERT INTO {table_name} VALUES {values}"
         cursor.execute(sql)
 
