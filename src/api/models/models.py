@@ -70,6 +70,8 @@ class CartItem(BaseModel):
     item_id: str
     qty: int
     vendor_id: str
+    unit_price: float
+    total_price: float
 
 
 class Cart(BaseModel):
