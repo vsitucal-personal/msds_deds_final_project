@@ -269,13 +269,13 @@ list_tables_redshift_task = PythonOperator(
 
 sync_task = PythonOperator(
     task_id="sync_all_uploads",
-    python_callabe=sync_all,
+    python_callable=sync_all,
     dag=dag,
 )
 
 dag_end = PythonOperator(
     task_id="end",
-    python_callabe=end,
+    python_callable=end,
     dag=dag,
 )
 
