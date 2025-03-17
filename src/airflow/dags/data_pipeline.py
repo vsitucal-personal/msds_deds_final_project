@@ -4,7 +4,6 @@ from io import BytesIO, StringIO
 
 import boto3
 import pandas as pd
-from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.redshift_sql import RedshiftSQLHook
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
@@ -232,6 +231,14 @@ def load_raw_to_redshift(table_name):
     print(f"Successfully loaded {table_name} into Redshift.")
 
 
+def sync_all():
+    print("All tasks synced!")
+
+
+def end():
+    print("DAG end!")
+
+
 # Default args
 default_args = {
     "owner": "airflow",
@@ -260,8 +267,15 @@ list_tables_redshift_task = PythonOperator(
     dag=dag,
 )
 
-sync_task = EmptyOperator(
+sync_task = PythonOperator(
     task_id="sync_all_uploads",
+    python_callabe=sync_all,
+    dag=dag,
+)
+
+dag_end = PythonOperator(
+    task_id="end",
+    python_callabe=end(),
     dag=dag,
 )
 
@@ -292,4 +306,4 @@ for table in table_names_redshift:
         op_kwargs={"table_name": table},
         dag=dag,
     )
-    sync_task >> to_olap_task
+    sync_task >> to_olap_task >> dag_end
