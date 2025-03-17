@@ -9,3 +9,5 @@ pandas
 faker
 redshift_connector
 boto3
+s3fs
+fsspec
