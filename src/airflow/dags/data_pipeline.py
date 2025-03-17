@@ -275,7 +275,7 @@ sync_task = PythonOperator(
 
 dag_end = PythonOperator(
     task_id="end",
-    python_callabe=end(),
+    python_callabe=end,
     dag=dag,
 )
 
